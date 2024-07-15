@@ -12,9 +12,7 @@ dependencies:
 
 build:
   compiler: g++
-  flags: -O2 -Wall
-  output: bin/my_project
+  flags: -O2 -Wal
 
 run:
-  command: bin/my_project
   args: ["arg1", "arg2"]

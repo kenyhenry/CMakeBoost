@@ -31,9 +31,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add dependencies
 """
-    for dep in config['dependencies']:
-        name = dep['name']
-        cmake_content += f"""
+    if 'dependencies' in config:
+        for dep in config['dependencies']:
+            name = dep['name']
+            cmake_content += f"""
 # {name}
 add_subdirectory(libs/{name})
 """
@@ -44,9 +45,10 @@ add_executable({config['project']['name']} {config['project']['entrypoint']})
 
 # Link dependencies
 """
-    for dep in config['dependencies']:
-        name = dep['name']
-        cmake_content += f"""
+    if 'dependencies' in config:
+        for dep in config['dependencies']:
+            name = dep['name']
+            cmake_content += f"""
 target_link_libraries({config['project']['name']} PRIVATE {name})
 """
 
@@ -72,7 +74,7 @@ def compile_project():
     return True
 
 def run_project(config):
-    run_command = [config['run']['command']] + config['run'].get('args', [])
+    run_command = ['build/'+config['project']['name']] + config['run'].get('args', [])
     result = subprocess.run(run_command)
     if result.returncode == 0:
         print("Project ran successfully!")
@@ -82,8 +84,9 @@ def run_project(config):
 def main():
     config = read_yaml('cmakeboost.yaml')
 
-    for dep in config['dependencies']:
-        download_and_build_dependency(dep)
+    if 'dependencies' in config:
+        for dep in config['dependencies']:
+            download_and_build_dependency(dep)
 
     generate_cmake_file(config)
 
