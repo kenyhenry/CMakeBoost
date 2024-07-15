@@ -1,0 +1,20 @@
+# project.yaml
+project:
+  name: MyProject
+  version: 1.0.0
+  entrypoint: src/main.cpp
+
+dependencies:
+  - name: opengl
+    version: 3.3.0
+  - name: glfw
+    version: 3.3.2
+
+build:
+  compiler: g++
+  flags: -O2 -Wall
+  output: bin/my_project
+
+run:
+  command: bin/my_project
+  args: ["arg1", "arg2"]

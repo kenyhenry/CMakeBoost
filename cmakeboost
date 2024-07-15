@@ -1,0 +1,94 @@
+#!/bin/python3
+
+import yaml
+import os
+import subprocess
+import requests
+
+def read_yaml(file_path):
+    with open(file_path, 'r') as file:
+        return yaml.safe_load(file)
+
+def download_and_build_dependency(dep):
+    name = dep['name']
+    version = dep['version']
+
+    # Implement the logic to download and build the dependency
+    # For demonstration purposes, we'll just simulate this step
+    print(f"Downloading and building {name} version {version}...")
+    os.makedirs(f"libs/{name}", exist_ok=True)
+    # Normally, you'd download the source and build it here
+    print(f"{name} {version} built and stored in libs/{name}.")
+
+def generate_cmake_file(config):
+    cmake_content = f"""
+cmake_minimum_required(VERSION 3.10)
+project({config['project']['name']} VERSION {config['project']['version']})
+
+# Set the C++ standard
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Add dependencies
+"""
+    for dep in config['dependencies']:
+        name = dep['name']
+        cmake_content += f"""
+# {name}
+add_subdirectory(libs/{name})
+"""
+
+    cmake_content += f"""
+# Add the executable
+add_executable({config['project']['name']} {config['project']['entrypoint']})
+
+# Link dependencies
+"""
+    for dep in config['dependencies']:
+        name = dep['name']
+        cmake_content += f"""
+target_link_libraries({config['project']['name']} PRIVATE {name})
+"""
+
+    cmake_file_path = "CMakeLists.txt"
+    with open(cmake_file_path, 'w') as file:
+        file.write(cmake_content)
+    print(f"CMakeLists.txt generated at {cmake_file_path}")
+
+def compile_project():
+    build_dir = "build"
+    os.makedirs(build_dir, exist_ok=True)
+    result = subprocess.run(["cmake", ".."], cwd=build_dir)
+    if result.returncode != 0:
+        print("CMake configuration failed.")
+        return False
+
+    result = subprocess.run(["make"], cwd=build_dir)
+    if result.returncode != 0:
+        print("Compilation failed.")
+        return False
+
+    print("Compilation succeeded!")
+    return True
+
+def run_project(config):
+    run_command = [config['run']['command']] + config['run'].get('args', [])
+    result = subprocess.run(run_command)
+    if result.returncode == 0:
+        print("Project ran successfully!")
+    else:
+        print("Project execution failed.")
+
+def main():
+    config = read_yaml('cmakeboost.yaml')
+
+    for dep in config['dependencies']:
+        download_and_build_dependency(dep)
+
+    generate_cmake_file(config)
+
+    if compile_project():
+        run_project(config)
+
+if __name__ == "__main__":
+    main()
