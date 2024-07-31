@@ -4,11 +4,10 @@ project:
   version: 1.0.0
   entrypoint: src/main.cpp
 
-# dependencies:
-  # - name: opengl
-  #   version: 3.3.0
-  # - name: glfw
-  #   version: 3.3.2
+dependencies:
+  - name: fmt
+    version: 11.0.1
+    repo: https://github.com/fmtlib/fmt.git
 
 build:
   compiler: g++

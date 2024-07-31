@@ -1,26 +1,56 @@
 #!/bin/python3
-
+import fnmatch
 import yaml
 import os
 import subprocess
 import requests
 
+file_patterns = ['*.hpp', '*.cpp', '*.h', '*.c']
+
 def read_yaml(file_path):
     with open(file_path, 'r') as file:
         return yaml.safe_load(file)
 
+def download_github(dep):
+    name = dep['name']
+    version = dep['version']
+    github_repo = dep['repo']
+
+    directory = f"libs/{name}"
+
+    if not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+        return
+
+    # Clone the repository
+    try:
+        subprocess.run(['git', 'clone', github_repo, '--branch', version, directory], check=True)
+        print(f"Repository cloned successfully into {directory}")
+    except subprocess.CalledProcessError:
+        print("Failed to clone the repository")
+
+    include_dirs = []
+    for root, dirs, files in os.walk(directory):
+        for pattern in file_patterns:
+            if any(fnmatch.fnmatch(file, pattern) for file in files):
+                print(root)
+                include_dirs.append(root)
+    return include_dirs
+
 def download_and_build_dependency(dep):
     name = dep['name']
     version = dep['version']
+    github_repo = dep['repo']
 
-    # Implement the logic to download and build the dependency
+    # TODO Implement the logic to download and build the dependency from own file server
     # For demonstration purposes, we'll just simulate this step
     print(f"Downloading and building {name} version {version}...")
-    os.makedirs(f"libs/{name}", exist_ok=True)
+    dir = download_github(dep)
     # Normally, you'd download the source and build it here
     print(f"{name} {version} built and stored in libs/{name}.")
+    return dir
 
-def generate_cmake_file(config):
+def generate_cmake_file(config, include_dirs):
     cmake_content = f"""
 cmake_minimum_required(VERSION 3.10)
 project({config['project']['name']} VERSION {config['project']['version']})
@@ -31,6 +61,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Add dependencies
 """
+#     for dir in include_dirs:
+#         cmake_content += f"""
+# include_directories('{dir}')
+# """
+    lines = [
+        "cmake_minimum_required(VERSION 3.10)",
+        "project(MyProject)",
+        "",
+        "file(GLOB_RECURSE headers_and_sources libs/*.hpp libs/*.cpp)",
+        "foreach(file ${headers_and_sources})",
+        "    get_filename_component(dir ${file} DIRECTORY)",
+        "    include_directories(${dir})",
+        "endforeach()"
+    ]
+
+    for line in lines:
+        cmake_content += line
+        cmake_content += '\n'
+
     if 'dependencies' in config:
         for dep in config['dependencies']:
             name = dep['name']
@@ -83,12 +132,12 @@ def run_project(config):
 
 def main():
     config = read_yaml('cmakeboost.yaml')
-
+    include_dir = []
     if 'dependencies' in config:
         for dep in config['dependencies']:
-            download_and_build_dependency(dep)
+            include_dir = download_and_build_dependency(dep)
 
-    generate_cmake_file(config)
+    generate_cmake_file(config, include_dir)
 
     if compile_project():
         run_project(config)
